@@ -14,6 +14,7 @@ using namespace std::experimental::filesystem::v1;
 
 class WeightedQuickUnion
 {
+private:
   struct Node
   {
     Node *parent{ nullptr };
@@ -29,26 +30,37 @@ class WeightedQuickUnion
   int side_length;
   int max_depth = 1;
 
-public:
-  WeightedQuickUnion(int size) : comps(static_cast<int>(pow(size, 2)))
-    , top(Node()), bottom(Node())
+  Node *root(int p)
   {
-    int i = 0;
+    Node *n = &comps[p];
+    return root(n);
+  }
 
-    for (auto &c : comps)
-    {
-      c = Node();
-      c.val = i++;
-    }
+  Node *root(Node *n)
+  {
+    while (n->parent != nullptr) n = n->parent;
+    return n;
+  }
 
-    side_length = static_cast<int>(size);
+  bool connected(int p, int q)
+  {
+    if (p == q) return true;
+    return root(p) == root(q);
+  }
 
-    // artifically join top and bottom node
-    for (i = 0; i < side_length; i++)
-    {
-      comps[i].parent = &top;
-      comps[comps.size() - i - 1].parent = &bottom;
-    }
+  int rcToIndex(int r, int c)
+  {
+    return ((r - 1) * side_length) + (c - 1);
+  }
+
+  bool isOpen(int r, int c)
+  {
+    if (r < 1) return false;
+    if (c < 1) return false;
+    if (r > side_length) return false;
+    if (c > side_length) return false;
+    int index = rcToIndex(r, c);
+    return comps[index].open;
   }
 
   void join(int p, int q)
@@ -72,28 +84,29 @@ public:
       max_depth = std::max(max_depth, comps[p].count);
     }
   }
+public:
+  WeightedQuickUnion(int side_length) : comps(static_cast<int>(pow(side_length, 2)))
+    , top(Node()), bottom(Node()), side_length(side_length)
+  {
+    int i = 0;
+
+    for (auto &c : comps)
+    {
+      c = Node();
+      c.val = i++;
+    }
+
+    // artifically join top and bottom node
+    for (i = 0; i < side_length; i++)
+    {
+      comps[i].parent = &top;
+      comps[comps.size() - i - 1].parent = &bottom;
+    }
+  }
 
   int getDepth()
   {
     return max_depth;
-  }
-
-  Node *root(int p)
-  {
-    Node *n = &comps[p];
-    return root(n);
-  }
-
-  Node *root(Node *n)
-  {
-    while (n->parent != nullptr) n = n->parent;
-    return n;
-  }
-
-  bool connected(int p, int q)
-  {
-    if (p == q) return true;
-    return root(p) == root(q);
   }
 
   int getSideLength()
@@ -104,21 +117,6 @@ public:
   size_t size()
   {
     return comps.size();
-  }
-
-  int rcToIndex(int r, int c)
-  {
-    return ((r - 1) * side_length) + (c - 1);
-  }
-
-  bool isOpen(int r, int c)
-  {
-    if (r < 1) return false;
-    if (c < 1) return false;
-    if (r > side_length) return false;
-    if (c > side_length) return false;
-    int index = rcToIndex(r, c);
-    return comps[index].open;
   }
 
   void open(int r, int c)
@@ -173,9 +171,9 @@ int main()
     }
 
     vector<pair<int, int>> joins;
-    int size;
+    int side_length;
 
-    inf >> size;
+    inf >> side_length;
 
     while (!inf.eof())
     {
@@ -190,7 +188,7 @@ int main()
       joins.push_back(make_pair(p, q));
     }
 
-    WeightedQuickUnion uf(size);
+    WeightedQuickUnion uf(side_length);
     for (auto &j : joins)
     {
       uf.open(j.first, j.second);
